@@ -160,3 +160,24 @@ def fig_network_utilization(scn: Scenario, occupancy: list[list[int]], title: st
     cb.ax.tick_params(colors=MUTED, labelsize=7)
     fig.tight_layout()
     return fig
+
+
+def fig_map(scn: Scenario, status: dict[int, str], busy: dict[int, int]):
+    """City map: stations coloured by status (green online, amber limited, red down) + EV positions."""
+    col = {"online": "#22c55e", "limited": "#f59e0b", "down": "#ef4444"}
+    fig, ax = _fig(7.5, 4.6)
+    ax.set_facecolor("#0b121b")
+    ax.scatter([e.x_km for e in scn.evs], [e.y_km for e in scn.evs], s=14, color="#64748b",
+               alpha=0.8, label="EV")
+    for s in scn.stations:
+        c = col[status[s.station_id]]
+        ax.scatter(s.x_km, s.y_km, s=520, color=c, alpha=0.18)
+        ax.scatter(s.x_km, s.y_km, s=130, color=c, edgecolor="white", linewidth=1.2, zorder=3)
+        ax.text(s.x_km, s.y_km + 0.9, f"{s.name}  {busy[s.station_id]}/{s.ports}", ha="center",
+                color=TEXT, fontsize=8, fontweight="bold")
+    ax.set_xlim(-1, scn.config.area_km + 1)
+    ax.set_ylim(-1, scn.config.area_km + 2)
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.grid(color=GRID, alpha=0.3)
+    fig.tight_layout()
+    return fig
