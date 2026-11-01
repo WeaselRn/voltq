@@ -70,6 +70,16 @@ class Station:
     open_slot: int           # first usable slot
     close_slot: int          # charging must end at or before this boundary
     price_factor: float      # multiplier on the base tariff (fast = pricier)
+    grid_kw: float | None = None   # aggregate power cap for all ports; None = ports * power_kw (non-binding)
+    grid_from: int = 0             # slot from which grid_kw applies (earlier slots use the nominal cap)
+
+
+def grid_limit_kw(st: Station, t: int) -> float:
+    """Aggregate power available at station `st` in slot t (G_{s,t})."""
+    nominal = st.ports * st.power_kw
+    if st.grid_kw is None or t < st.grid_from:
+        return nominal
+    return min(nominal, st.grid_kw)
 
 
 @dataclass
@@ -96,6 +106,7 @@ class Option:
     distance_km: float
     travel_cost: float       # INR
     cost: float = 0.0        # normalized weighted objective contribution
+    power_kw: float = 0.0    # constant charging power of the session (min(EV max, station per-port))
 
     @property
     def slots(self) -> range:

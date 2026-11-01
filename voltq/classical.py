@@ -47,22 +47,32 @@ def greedy_schedule(scn: Scenario, pre: Preprocessed) -> Schedule:
 
 def solve_cpsat(options_by_ev: dict[int, list[Option]], residual: Residual,
                 unassigned_penalty: float, time_limit: float = 20.0, seed: int = 1,
+                penalty_by_ev: dict[int, float] | None = None,
+                power_residual: Callable[[int, int], float] | None = None,
                 ) -> tuple[dict[int, Option], str, float]:
-    """Max-service min-cost assignment. Returns (assignments, status, objective)."""
+    """Max-service min-cost assignment. Returns (assignments, status, objective).
+
+    penalty_by_ev   per-EV unserved penalty (recovery: critical EVs cost far more to drop)
+    power_residual  kW still available at (station, slot); enforces the aggregate grid limit
+    """
     m = cp_model.CpModel()
     x: dict[tuple[int, int], cp_model.IntVar] = {}
     opts: list[Option] = []
     cover: dict[tuple[int, int], list] = {}
     unassigned_vars = []
+    opts_by_var: dict[int, Option] = {}
     obj = []
     for ev_id, lst in options_by_ev.items():
         ev_vars = []
         for o in lst:
             if not fits(o, residual):
                 continue
+            if power_residual and any(power_residual(o.station_id, t) < o.power_kw - 1e-9 for t in o.slots):
+                continue
             v = m.NewBoolVar(f"x_{len(opts)}")
             x[(len(opts), ev_id)] = v
             opts.append(o)
+            opts_by_var[id(v)] = o
             ev_vars.append(v)
             obj.append(int(round(o.cost * SCALE)) * v)
             for t in o.slots:
@@ -70,9 +80,15 @@ def solve_cpsat(options_by_ev: dict[int, list[Option]], residual: Residual,
         u = m.NewBoolVar(f"u_{ev_id}")
         m.Add(sum(ev_vars) + u == 1)
         unassigned_vars.append(u)
-        obj.append(int(round(unassigned_penalty * SCALE)) * u)
+        pen = (penalty_by_ev or {}).get(ev_id, unassigned_penalty)
+        obj.append(int(round(pen * SCALE)) * u)
     for (s, t), vs in cover.items():
         m.Add(sum(vs) <= residual(s, t))
+        if power_residual:
+            watts = [int(round(opts_by_var[id(v)].power_kw * 100)) for v in vs]
+            cap = int(power_residual(s, t) * 100 + 1e-6)
+            if sum(watts) > cap:
+                m.Add(sum(w * v for w, v in zip(watts, vs)) <= cap)
     m.Minimize(sum(obj))
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit

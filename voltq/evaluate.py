@@ -9,7 +9,7 @@ import math
 
 import numpy as np
 
-from .models import Scenario, Session
+from .models import Scenario, Session, grid_limit_kw
 
 
 def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, float],
@@ -28,6 +28,7 @@ def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, fl
             violations.append(f"EV {ev_id} has {c} simultaneous/multiple assignments")
 
     occupancy = np.zeros((len(scn.stations), T), dtype=int)
+    power_kw = np.zeros((len(scn.stations), T))
     port_busy: dict[tuple[int, int], list[tuple[int, int, int]]] = {}
     e_cost = w_h = dist_total = 0.0
     served = 0
@@ -63,6 +64,7 @@ def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, fl
         dist_total += d
         for t in range(s.start, end):
             occupancy[s.station_id, t] += 1
+            power_kw[s.station_id, t] += power
         if s.port < 0 or s.port >= st.ports:
             cap_viol += 1
             violations.append(f"EV {s.ev_id} has no valid port at {st.name}")
@@ -80,6 +82,15 @@ def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, fl
         if over:
             cap_viol += over
             violations.append(f"{st.name} over capacity in {over} slot-units")
+
+    power_viol = 0
+    for st in scn.stations:
+        for t in range(T):
+            limit = grid_limit_kw(st, t)
+            if power_kw[st.station_id, t] > limit + 1e-6:
+                power_viol += 1
+                violations.append(f"{st.name} slot {t}: {power_kw[st.station_id, t]:.0f} kW "
+                                  f"exceeds grid limit {limit:.0f} kW")
 
     n = len(scn.evs)
     unassigned = n - len({s.ev_id for s in sessions})
@@ -103,6 +114,8 @@ def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, fl
         "avg_utilization_pct": float(100 * used.sum() / avail.sum()),
         "completion_pct": 100.0 * served / n if n else 100.0,
         "capacity_violations": cap_viol,
+        "power_violations": power_viol,
+        "occupancy_kw": power_kw.tolist(),
         "unassigned_count": unassigned,
         "runtime_s": runtime_s,
         "occupancy": occupancy.tolist(),

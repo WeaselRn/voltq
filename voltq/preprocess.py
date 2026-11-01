@@ -70,17 +70,27 @@ class Preprocessed:
         return [o for opts in self.options.values() for o in opts]
 
 
-def build_options(scn: Scenario) -> Preprocessed:
+def build_options(scn: Scenario, refs: dict[str, float] | None = None, min_start: int = 0,
+                  ev_ids: set[int] | None = None) -> Preprocessed:
+    """Feasible options per EV.
+
+    refs      reuse normalization references (recovery keeps the original scale so costs compare)
+    min_start no session may start before this slot (recovery: the past cannot be changed)
+    ev_ids    restrict generation to these EVs (others get empty lists)
+    """
     cfg, h = scn.config, scn.config.slot_hours
     raw: dict[int, list[Option]] = {}
     for ev in scn.evs:
         energy = required_energy_kwh(ev, cfg.efficiency)
         opts = []
+        if ev_ids is not None and ev.ev_id not in ev_ids:
+            raw[ev.ev_id] = opts
+            continue
         for st in scn.stations:
             p = effective_power_kw(ev, st)
             dur = charge_duration_slots(energy, p, h)
             dist = distance_km(ev, st)
-            earliest = max(ev.arrival_slot + travel_slots(dist, cfg.speed_kmh, h), st.open_slot)
+            earliest = max(ev.arrival_slot + travel_slots(dist, cfg.speed_kmh, h), st.open_slot, min_start)
             last_end = min(ev.departure_slot, st.close_slot, cfg.n_slots)
             if dur == 0:
                 continue
@@ -93,7 +103,7 @@ def build_options(scn: Scenario) -> Preprocessed:
                     ev_id=ev.ev_id, station_id=st.station_id, start=t, duration=dur,
                     energy_kwh=energy, energy_cost=e_cost, wait_h=wait_h,
                     wait_cost=wait_h * cfg.wait_inr_per_hour,
-                    distance_km=dist, travel_cost=dist * cfg.travel_inr_per_km))
+                    distance_km=dist, travel_cost=dist * cfg.travel_inr_per_km, power_kw=p))
         raw[ev.ev_id] = opts
 
     flat = [o for v in raw.values() for o in v]
@@ -102,7 +112,7 @@ def build_options(scn: Scenario) -> Preprocessed:
         pos = [x for x in vals if x > 1e-12]
         return sum(pos) / len(pos) if pos else 1.0
 
-    refs = {
+    refs = refs or {
         "energy": mean_pos([o.energy_cost for o in flat]),
         "waiting": mean_pos([o.wait_cost for o in flat]),
         "travel": mean_pos([o.travel_cost for o in flat]),

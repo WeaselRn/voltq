@@ -37,6 +37,7 @@ class QUBO:
     options: list[Option]                       # variable i < len(options) <-> options[i]
     ev_groups: dict[int, list[int]]
     capacity: list[tuple[list[int], int, tuple[int, int]]]   # (decision var idx, residual, (s,t))
+    power: list[tuple[list[int], list[float], float, tuple[int, int]]] = field(default_factory=list)
     n_slack: int = 0
     penalties: dict[str, float] = field(default_factory=dict)
     dropped: int = 0
@@ -65,11 +66,13 @@ class QUBO:
         b = np.asarray(bits).astype(int)
         bad_assign = sum(1 for idx in self.ev_groups.values() if int(b[idx].sum()) != 1)
         bad_cap = sum(1 for idx, r, _ in self.capacity if int(b[idx].sum()) > r)
-        return {"assignment": bad_assign, "capacity": bad_cap}
+        bad_pow = sum(1 for idx, w, lim, _ in self.power
+                      if float(np.dot(w, b[idx])) > lim + 1e-9)
+        return {"assignment": bad_assign, "capacity": bad_cap, "power": bad_pow}
 
     def is_feasible(self, bits: np.ndarray) -> bool:
         v = self.violations(bits)
-        return v["assignment"] == 0 and v["capacity"] == 0
+        return v["assignment"] == 0 and v["capacity"] == 0 and v["power"] == 0
 
     def decode(self, bits: np.ndarray) -> list[Option]:
         """Selected options (decision variables only)."""
@@ -99,17 +102,25 @@ def slack_weights(residual: int) -> list[int]:
 
 def build_qubo(options_by_ev: dict[int, list[Option]],
                residual: Callable[[int, int], int],
-               penalty_scale: float = 1.5) -> QUBO:
+               penalty_scale: float = 1.5,
+               power_residual: Callable[[int, int], float] | None = None) -> QUBO:
     """Build the QUBO for the given candidate options.
 
     `residual(s, t)` returns free ports at station s in slot t (ports minus already committed).
+    `power_residual(s, t)` (optional) returns free grid kW. Aggregate power  sum_o p_o x_o <= G is a
+    weighted knapsack row; encoding it exactly would need many slack qubits, so it is enforced as
+    (a) options that never fit alone are dropped, (b) a pairwise penalty P_c x_o x_o' for every pair
+    whose joint power exceeds G, and (c) an exact check on every decoded sample (`violations`) so a
+    sample that breaks a >=3-way power limit is never reported feasible.
     Options that cannot fit even alone are dropped (counted in `dropped`).
     """
     opts: list[Option] = []
     dropped = 0
     for evid in sorted(options_by_ev):
         for o in options_by_ev[evid]:
-            if all(residual(o.station_id, t) >= 1 for t in o.slots):
+            if all(residual(o.station_id, t) >= 1 for t in o.slots) and (
+                    power_residual is None
+                    or all(power_residual(o.station_id, t) >= o.power_kw - 1e-9 for t in o.slots)):
                 opts.append(o)
             else:
                 dropped += 1
@@ -164,8 +175,25 @@ def build_qubo(options_by_ev: dict[int, list[Option]],
             slack_ptr += len(w)
             offset += _add_square(lin, quad, terms, float(r), P_c)
 
+    power_rows = []
+    if power_residual is not None:
+        for (s, t), idx in cover.items():
+            lim = power_residual(s, t)
+            w = [opts[i].power_kw for i in idx]
+            if sum(w) > lim + 1e-9:
+                power_rows.append((list(idx), w, float(lim), (s, t)))
+                for a, i in enumerate(idx):
+                    for j in idx[a + 1:]:
+                        if opts[i].ev_id == opts[j].ev_id:
+                            continue
+                        if opts[i].power_kw + opts[j].power_kw > lim + 1e-9:
+                            key = (min(i, j), max(i, j))
+                            if key not in pair_done:
+                                pair_done.add(key)
+                                quad[key] = quad.get(key, 0.0) + P_c
+
     return QUBO(n=n, linear=lin, quad=quad, offset=offset, options=opts, ev_groups=groups,
-                capacity=capacity, n_slack=n_slack,
+                capacity=capacity, power=power_rows, n_slack=n_slack,
                 penalties={"assignment": P_a, "capacity": P_c}, dropped=dropped)
 
 
@@ -212,6 +240,8 @@ def exact_solve(q: QUBO, max_vars: int = 22) -> dict:
             feas &= X[:, g].sum(axis=1) == 1
         for cidx, r, _ in q.capacity:
             feas &= X[:, cidx].sum(axis=1) <= r
+        for pidx, w, lim, _ in q.power:
+            feas &= (X[:, pidx] * np.array(w)).sum(axis=1) <= lim + 1e-9
         if feas.any():
             Ef = np.where(feas, E, np.inf)
             k = int(np.argmin(Ef))

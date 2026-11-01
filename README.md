@@ -3,6 +3,8 @@
 Hybrid quantum-classical scheduling of EV charging. **All quantum circuits run locally on Qiskit Aer.**
 No IBM hardware, IBM Quantum cloud, Runtime or API keys are used (`qiskit-ibm-runtime` is installed but never imported).
 
+> **Phase 2:** commitment-aware dynamic recovery, grid-aware charging, disruption simulator and recovery benchmarks are documented in [RECOVERY.md](RECOVERY.md).
+
 ## Problem
 
 EV demand fluctuates. Poor scheduling causes long waits, uneven station use, high energy cost and
