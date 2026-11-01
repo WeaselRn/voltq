@@ -77,7 +77,7 @@ def scenario_tables(scn: Scenario, distance: pd.DataFrame | None = None) -> dict
     price_df = pd.DataFrame({
         "slot": range(cfg.n_slots),
         "clock": [f"{int(h):02d}:{int(round((h % 1) * 60)):02d}" for h in hours],
-        "tier": scn.price_tiers, "price_eur_kwh": scn.prices,
+        "tier": scn.price_tiers, "price_inr_kwh": scn.prices,
     })
     tables = {"evs": ev_df, "stations": st_df, "prices": price_df}
     if distance is not None:

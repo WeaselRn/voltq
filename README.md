@@ -39,8 +39,8 @@ Station s: ports `K_s`, power `Q_s`, hours `[open_s, close_s)`, price factor `f_
 **Binary variables** `x[v,s,t] = 1` iff EV v charges at station s from slot t. Only feasible triples
 become variables (e.g. 480 naive → 164 for the default scenario).
 
-**Costs** (EUR): `C_energy = sum_t price_t * f_s * kWh_t`, `C_waiting = wait_hours * 8 EUR/h`,
-`C_travel = dist_km * 0.30 EUR/km`. Each component is divided by its mean over all feasible options
+**Costs** (INR): `C_energy = sum_t price_t * f_s * kWh_t`, `C_waiting = wait_hours * 250 INR/h`,
+`C_travel = dist_km * 8 INR/km`. Each component is divided by its mean over all feasible options
 (dimensionless, ~1), then weighted: `c_o = alpha*E/E_ref + beta*W/W_ref + gamma*T/T_ref`.
 Unserved EV costs `unassigned_penalty` (10). Weights and rates are configurable.
 
@@ -99,30 +99,34 @@ quantum_vs_classical, comparison).
 
 ## Sample results (seed 42, 10 EVs, 4 stations × 2 ports, 12 slots; produced by `run_demo.py`)
 
-| Method | Feasible (validated) | Cost EUR | Objective | Avg wait h | Unassigned | Runtime s |
+| Method | Feasible (validated) | Cost INR | Objective | Avg wait h | Unassigned | Runtime s |
 |---|---|---|---|---|---|---|
-| Greedy | yes | 147.49 | 18.802 | 0.00 | 0 | 0.00 |
-| OR-Tools CP-SAT | yes (OPTIMAL) | 147.49 | 18.802 | 0.00 | 0 | 0.03 |
-| Hybrid (QAOA batches) | yes | 152.19 | 18.870 | 0.05 | 0 | 2.6 |
-| Hybrid (+ refinement) | yes | 152.19 | 18.870 | 0.05 | 0 | 2.6 |
+| Greedy | yes | 4904.29 | 18.530 | 0.00 | 0 | 0.00 |
+| OR-Tools CP-SAT | yes (OPTIMAL) | 4904.29 | 18.530 | 0.00 | 0 | 0.03 |
+| Hybrid (QAOA batches) | yes | 5068.88 | 18.592 | 0.05 | 0 | 2.1 |
+| Hybrid (+ refinement) | yes | 5068.88 | 18.592 | 0.05 | 0 | 2.1 |
 
-Congested scenario (`--evs 15 --stations 5 --ports-min 1 --ports-max 2 --seed 7`): Greedy objective 37.06,
-CP-SAT 35.48 (optimal), Hybrid 35.79; every method leaves 1 EV unserved, reported explicitly.
+Congested scenario (`--evs 15 --stations 5 --ports-min 1 --ports-max 2 --seed 7`): Greedy objective 36.46,
+CP-SAT 35.13 (optimal), Hybrid 36.00; every method leaves 1 EV unserved, reported explicitly.
 
 Reduced QAOA instance (3 EVs, 12 qubits = 6 decision + 6 slack, p=1, 512 shots, COBYLA, 34 evaluations,
 circuit depth 17, 66 gates, ~1.5 s): the best feasible sample equals the brute-force optimum and CP-SAT
-(5.9217). Depth sweep p=1,2,3 (depth 17/31/45, gates 66/120/174) also reached the optimum.
+(5.785). Depth sweep p=1,2,3 (depth 17/31/45, gates 66/120/174) also reached the optimum.
 
 ## Performance comparison — honest reading
 
 * CP-SAT is exact at these sizes and is never beaten. Greedy is already optimal on the uncongested default.
 * **No quantum advantage is claimed or observed.** A control that draws the same number of *uniform random*
-  bitstrings (16 384) finds the same optimum on the 12-qubit instance. QAOA's final
+  bitstrings (~17 000) finds the same optimum on the 12-qubit instance. chance per sample of hitting the best plan is 1.9% for QAOA vs 1.5% for random. QAOA's final
   P(feasible) is ~10–16%, similar to random sampling's 12.5%, and deeper circuits did not raise it.
   The instance is simply small enough that sampling finds the optimum.
 * The hybrid gives a valid schedule using QAOA for every batch decision. On the default scenario it is
   slightly worse than classical (batches are myopic); on the congested one it beats greedy and is close to CP-SAT.
 * Value of the project: a correct QUBO/QAOA pipeline, validated end to end, ready for hardware-scale studies.
+
+## Notes on scope
+
+QAOA needs a cost Hamiltonian; the QUBO is the standard way to write one, so it cannot be dropped (the dashboard hides it and explains results in plain English). Equal values on the reduced instance are correct: all methods reach the true optimum. The simulator is noiseless, so no error correction is used.
 
 ## Why simulation, not real hardware
 

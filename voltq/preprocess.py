@@ -61,7 +61,7 @@ def distance_matrix(scn: Scenario) -> pd.DataFrame:
 @dataclass
 class Preprocessed:
     options: dict[int, list[Option]]     # ev_id -> feasible options (cost filled in)
-    refs: dict[str, float]               # normalization references (EUR)
+    refs: dict[str, float]               # normalization references (INR)
     infeasible_evs: list[int]            # EVs with no feasible option at all
     full_size: int                       # naive |V|*|S|*|T| variable count
     reduced_size: int                    # number of feasible options kept
@@ -92,8 +92,8 @@ def build_options(scn: Scenario) -> Preprocessed:
                 opts.append(Option(
                     ev_id=ev.ev_id, station_id=st.station_id, start=t, duration=dur,
                     energy_kwh=energy, energy_cost=e_cost, wait_h=wait_h,
-                    wait_cost=wait_h * cfg.wait_eur_per_hour,
-                    distance_km=dist, travel_cost=dist * cfg.travel_eur_per_km))
+                    wait_cost=wait_h * cfg.wait_inr_per_hour,
+                    distance_km=dist, travel_cost=dist * cfg.travel_inr_per_km))
         raw[ev.ev_id] = opts
 
     flat = [o for v in raw.values() for o in v]

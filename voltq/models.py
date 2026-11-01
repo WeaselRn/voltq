@@ -23,10 +23,10 @@ class ScenarioConfig:
     ev_power_choices: tuple = (11.0, 22.0, 50.0, 100.0)       # kW max accepted
     station_power_choices: tuple = (22.0, 50.0, 100.0)        # kW per port
     restricted_station_prob: float = 0.25   # chance a station closes early
-    # tariff (EUR/kWh) and tier boundaries (hours of day)
-    peak_price: float = 0.42
-    normal_price: float = 0.26
-    offpeak_price: float = 0.13
+    # tariff (INR/kWh) and tier boundaries (hours of day)
+    peak_price: float = 14.0
+    normal_price: float = 9.0
+    offpeak_price: float = 5.0
     peak_start_hour: float = 17.0
     peak_end_hour: float = 21.0
     offpeak_start_hour: float = 22.0
@@ -36,8 +36,8 @@ class ScenarioConfig:
     alpha: float = 1.0                # energy
     beta: float = 1.0                 # waiting
     gamma: float = 1.0                # travel
-    wait_eur_per_hour: float = 8.0    # value of waiting time
-    travel_eur_per_km: float = 0.30   # cost of driving to a station
+    wait_inr_per_hour: float = 250.0   # value of waiting time
+    travel_inr_per_km: float = 8.0    # cost of driving to a station
     unassigned_penalty: float = 10.0  # objective penalty per unserved EV
 
     @property
@@ -77,7 +77,7 @@ class Scenario:
     config: ScenarioConfig
     evs: list[EV]
     stations: list[Station]
-    prices: list[float]      # base tariff EUR/kWh per slot
+    prices: list[float]      # base tariff INR/kWh per slot
     price_tiers: list[str]   # peak / normal / offpeak per slot
 
 
@@ -90,11 +90,11 @@ class Option:
     start: int
     duration: int            # slots, contiguous
     energy_kwh: float        # energy drawn from the grid
-    energy_cost: float       # EUR
+    energy_cost: float       # INR
     wait_h: float            # idle hours at station before charging starts
-    wait_cost: float         # EUR
+    wait_cost: float         # INR
     distance_km: float
-    travel_cost: float       # EUR
+    travel_cost: float       # INR
     cost: float = 0.0        # normalized weighted objective contribution
 
     @property

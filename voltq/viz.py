@@ -28,7 +28,7 @@ def fig_tariff(scn: Scenario):
     ax.bar(range(T), scn.prices, color=[TIER_COLOR[t] for t in scn.price_tiers], width=0.9)
     ax.set_xticks(range(T))
     ax.set_xticklabels(_slot_labels(scn), rotation=60, fontsize=8)
-    ax.set_ylabel("EUR / kWh")
+    ax.set_ylabel("INR / kWh")
     ax.set_title("Electricity tariff per slot")
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in TIER_COLOR.values()]
     ax.legend(handles, TIER_COLOR.keys(), frameon=False, fontsize=8)
@@ -132,13 +132,13 @@ def fig_comparison(rows: dict[str, dict], title: str = "Algorithm comparison"):
     """rows: name -> metrics dict from evaluate_sessions."""
     names = list(rows)
     fig, axes = plt.subplots(1, 3, figsize=(11, 3.4))
-    comp = [("Energy", "energy_cost_eur"), ("Waiting", "waiting_cost_eur"), ("Travel", "travel_cost_eur")]
+    comp = [("Energy", "energy_cost_inr"), ("Waiting", "waiting_cost_inr"), ("Travel", "travel_cost_inr")]
     bottom = np.zeros(len(names))
     for (lab, key), c in zip(comp, PALETTE):
         vals = np.array([rows[n][key] for n in names])
         axes[0].bar(names, vals, bottom=bottom, label=lab, color=c)
         bottom += vals
-    axes[0].set_title("Cost breakdown (EUR)")
+    axes[0].set_title("Cost breakdown (INR)")
     axes[0].legend(frameon=False, fontsize=8)
     axes[1].bar(names, [rows[n]["avg_wait_h"] for n in names], color=PALETTE[1])
     axes[1].set_title("Avg waiting time (h)")

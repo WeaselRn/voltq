@@ -43,9 +43,9 @@ def main() -> None:
 
     pre = res["pre"]
     print(f"EVs={a.evs} stations={a.stations}: naive vars {pre.full_size} -> {pre.reduced_size} options")
-    print(f"{'method':30s} {'feasible':8s} {'EUR':>8s} {'objective':>9s} {'avg wait h':>10s} {'unassigned':>10s} {'runtime s':>9s}")
+    print(f"{'method':30s} {'feasible':8s} {'INR':>8s} {'objective':>9s} {'avg wait h':>10s} {'unassigned':>10s} {'runtime s':>9s}")
     for n, m in res["evals"].items():
-        print(f"{n:30s} {str(m['feasible']):8s} {m['total_cost_eur']:8.2f} {m['objective']:9.3f} "
+        print(f"{n:30s} {str(m['feasible']):8s} {m['total_cost_inr']:8.2f} {m['objective']:9.3f} "
               f"{m['avg_wait_h']:10.2f} {m['unassigned_count']:10d} {m['runtime_s']:9.2f}")
     print("hybrid batches:")
     for l in res["hybrid_logs"]:

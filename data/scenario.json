@@ -30,9 +30,9 @@
       100.0
     ],
     "restricted_station_prob": 0.25,
-    "peak_price": 0.42,
-    "normal_price": 0.26,
-    "offpeak_price": 0.13,
+    "peak_price": 14.0,
+    "normal_price": 9.0,
+    "offpeak_price": 5.0,
     "peak_start_hour": 17.0,
     "peak_end_hour": 21.0,
     "offpeak_start_hour": 22.0,
@@ -41,8 +41,8 @@
     "alpha": 1.0,
     "beta": 1.0,
     "gamma": 1.0,
-    "wait_eur_per_hour": 8.0,
-    "travel_eur_per_km": 0.3,
+    "wait_inr_per_hour": 250.0,
+    "travel_inr_per_km": 8.0,
     "unassigned_penalty": 10.0
   },
   "evs": [
@@ -285,18 +285,18 @@
     }
   ],
   "prices": [
-    0.42,
-    0.4238,
-    0.4165,
-    0.4088,
-    0.2565,
-    0.2523,
-    0.1302,
-    0.1352,
-    0.1281,
-    0.1276,
-    0.1319,
-    0.1314
+    14.0005,
+    14.1255,
+    13.8849,
+    13.626,
+    8.8772,
+    8.7323,
+    5.009,
+    5.201,
+    4.9262,
+    4.9069,
+    5.0735,
+    5.0535
   ],
   "price_tiers": [
     "peak",

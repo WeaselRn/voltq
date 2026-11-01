@@ -83,8 +83,8 @@ def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, fl
 
     n = len(scn.evs)
     unassigned = n - len({s.ev_id for s in sessions})
-    wait_cost = w_h * cfg.wait_eur_per_hour
-    travel_cost = dist_total * cfg.travel_eur_per_km
+    wait_cost = w_h * cfg.wait_inr_per_hour
+    travel_cost = dist_total * cfg.travel_inr_per_km
     objective = (cfg.alpha * e_cost / refs["energy"] + cfg.beta * wait_cost / refs["waiting"]
                  + cfg.gamma * travel_cost / refs["travel"] + cfg.unassigned_penalty * unassigned)
     avail = np.array([max(st.close_slot - st.open_slot, 1) * st.ports for st in scn.stations])
@@ -93,8 +93,8 @@ def evaluate_sessions(scn: Scenario, sessions: list[Session], refs: dict[str, fl
         "feasible": not violations and unassigned == 0,
         "valid_partial": not violations,       # no violation among served EVs
         "violations": violations,
-        "energy_cost_eur": e_cost, "waiting_cost_eur": wait_cost, "travel_cost_eur": travel_cost,
-        "total_cost_eur": e_cost + wait_cost + travel_cost,
+        "energy_cost_inr": e_cost, "waiting_cost_inr": wait_cost, "travel_cost_inr": travel_cost,
+        "total_cost_inr": e_cost + wait_cost + travel_cost,
         "objective": objective,
         "total_wait_h": w_h, "avg_wait_h": w_h / max(len(sessions), 1),
         "total_distance_km": dist_total,

@@ -18,21 +18,24 @@ from .qaoa import QAOAConfig
 from .qubo import QUBO
 
 
-def random_control(q: QUBO, n_samples: int, seed: int) -> dict:
+def random_control(q: QUBO, n_samples: int, seed: int, best_cost: float | None = None) -> dict:
     """Uniform random bitstrings with the same total shot budget as QAOA.
 
     Honest control: if random sampling finds the same answer, QAOA shows no benefit here.
     """
     rng = np.random.default_rng(seed)
     X = rng.integers(0, 2, size=(n_samples, q.n))
-    best, n_feas = None, 0
+    best, n_feas, n_best = None, 0, 0
     for row in X:
         if q.is_feasible(row):
             n_feas += 1
             c = q.decision_cost(row)
             if best is None or c < best:
                 best = c
-    return {"samples": n_samples, "prob_feasible": n_feas / n_samples, "best_feasible_cost": best}
+            if best_cost is not None and c <= best_cost + 1e-9:
+                n_best += 1
+    return {"samples": n_samples, "prob_feasible": n_feas / n_samples, "best_feasible_cost": best,
+            "prob_best": n_best / n_samples}
 
 
 def depth_sweep(scn: Scenario, pre: Preprocessed, base: QAOAConfig, depths=(1, 2, 3),
@@ -64,7 +67,9 @@ def run_all(cfg: ScenarioConfig, qcfg: QAOAConfig, hcfg: HybridConfig | None = N
     schedules[final.name] = final
     evals = evaluate_all(scn, pre, schedules)
     red = run_reduced_instance(scn, pre, qcfg)
-    red["random_control"] = random_control(red["qubo"], red["qaoa"].n_evaluations * qcfg.shots, qcfg.seed)
+    red["random_control"] = random_control(
+        red["qubo"], red["qaoa"].n_evaluations * qcfg.shots, qcfg.seed,
+        red["objective_by_method"]["Exact QUBO optimum (brute force)"])
     sweep = depth_sweep(scn, pre, qcfg, depths) if do_sweep else []
     return {"scenario": scn, "pre": pre, "schedules": schedules, "evals": evals,
             "reduced": red, "hybrid_logs": logs, "depth_sweep": sweep}

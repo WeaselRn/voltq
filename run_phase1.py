@@ -42,7 +42,7 @@ def main() -> None:
     schedules = run_baselines(scn, pre)
     evals = evaluate_all(scn, pre, schedules)
     for name, m in evals.items():
-        print(f"[{name}] feasible={m['feasible']} cost=EUR {m['total_cost_eur']:.2f} "
+        print(f"[{name}] feasible={m['feasible']} cost=INR {m['total_cost_inr']:.2f} "
               f"avg_wait={m['avg_wait_h']:.2f}h unassigned={m['unassigned_count']} "
               f"runtime={m['runtime_s']:.3f}s")
 

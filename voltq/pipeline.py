@@ -122,7 +122,7 @@ def schedule_table(scn: Scenario, schedule: Schedule) -> pd.DataFrame:
             "start_slot": s.start if s else None, "end_slot": s.start + s.duration if s else None,
             "start_h": round(scn.config.start_hour + s.start * h, 2) if s else None,
             "required_kwh": round(o.energy_kwh, 2) if o else None,
-            "energy_cost_eur": round(o.energy_cost, 2) if o else None,
+            "energy_cost_inr": round(o.energy_cost, 2) if o else None,
             "wait_h": o.wait_h if o else None,
             "distance_km": round(o.distance_km, 2) if o else None,
         })
