@@ -1,0 +1,30 @@
+# Virtual environments
+qiskit-env/
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+
+# Generated files
+outputs/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

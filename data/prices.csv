@@ -1,0 +1,13 @@
+slot,clock,tier,price_eur_kwh
+0,19:00,peak,0.42
+1,19:30,peak,0.4238
+2,20:00,peak,0.4165
+3,20:30,peak,0.4088
+4,21:00,normal,0.2565
+5,21:30,normal,0.2523
+6,22:00,offpeak,0.1302
+7,22:30,offpeak,0.1352
+8,23:00,offpeak,0.1281
+9,23:30,offpeak,0.1276
+10,00:00,offpeak,0.1319
+11,00:30,offpeak,0.1314
